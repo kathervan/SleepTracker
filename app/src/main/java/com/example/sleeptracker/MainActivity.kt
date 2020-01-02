@@ -7,15 +7,44 @@ import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.recyclerview_item.*
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var sleepViewModel: SleepViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
+
+        //Declare and initialize RecyclerView
+        val recycler: RecyclerView = findViewById(R.id.recyclerview)
+        val adapter = SleepAdapter(this)
+        recycler.adapter = adapter
+        recycler.layoutManager = LinearLayoutManager(this)
+
+        //Initialize viewModel
+        sleepViewModel = ViewModelProvider(this)
+            .get(SleepViewModel::class.java)
+
+        //Add an observer to the ViewModel (LiveData)
+        sleepViewModel.sleepList.observe(
+            this,
+            Observer {
+                if(it.isNotEmpty()){
+                    //set list of sleep to the adapter
+                    adapter.setSleep(it)
+                }
+            }
+        )
+
 
         fab.setOnClickListener {
             val intent = Intent(this, AddActivity::class.java)
@@ -23,13 +52,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    override fun onActivityResult(requestCode: Int,
+                                  resultCode: Int,
+                                  data: Intent?) {
 
         if(requestCode == REQUEST_CODE){
             if(resultCode == Activity.RESULT_OK){
+                val quality = data?.getIntExtra(AddActivity.EXTRA_QUALITY,
+                    0)
+
+                val sleep = Sleep(
+                    id = 0,
+                    startDate = System.currentTimeMillis(),
+                    endDate = System.currentTimeMillis(),
+                    quality = quality!!
+
+                )
+
+                //TODO: Insert a new record to database
+                sleepViewModel.insertSleep(sleep)
 
             }
         }
+
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
